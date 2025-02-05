@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+</head>
+
+<body class="h-screen flex flex-col bg-gray-100 overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-blue-600 text-white p-4 flex justify-between items-center shadow-lg">
+        <h1 class="text-xl font-semibold">Chat Dashboard</h1>
+        <div class="flex items-center space-x-4">
+            <span id="userInfo" class="text-sm"></span> <!-- Placeholder for user info -->
+            <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded">Logout</button>
+        </div>
+    </header>
+
+    <div class="h-full flex overflow-hidden">
+        <!-- Left Sidebar (User List) -->
+        <div class="w-1/4 bg-gray-200 p-4 overflow-y-auto max-h-full">
+            <h2 class="text-xl font-semibold mb-4">Users</h2>
+            <ul id="userList">
+                <!-- User list will be populated here -->
+            </ul>
+        </div>
+
+        <!-- Chat Window -->
+        <div id="chatWindow" class="w-3/4 flex flex-col bg-white shadow-lg rounded-lg hidden">
+            <!-- Active Chat User -->
+            <div class="bg-blue-500 text-white p-4 font-bold text-center flex items-center justify-between">
+                <span id="activeUser">Chat with...</span>
+                <span class="w-3 h-3 bg-green-500 rounded-full"></span> <!-- Online Indicator for Active User -->
+            </div>
+
+            <!-- Chat Messages -->
+            <div id="messageBox" class="flex-1 p-4 overflow-y-auto space-y-4 max-h-[calc(100vh-250px)]">
+                <!-- Chat messages will be displayed here -->
+            </div>
+
+            <!-- Chat Input (Fixed at the bottom) -->
+            <div class="p-4 bg-gray-200 flex items-center rounded-b-lg mt-auto">
+                <input id="messageInput" type="text" placeholder="Type a message..."
+                    class="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button id="sendButton"
+                    class="ml-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">Send</button>
+            </div>
+        </div>
+
+        <!-- Welcome Message -->
+        <div id="welcomeMessage" class="w-3/4 flex items-center justify-center bg-white shadow-lg rounded-lg p-4">
+            <h2 class="text-xl font-semibold">Welcome to the Chat Dashboard!</h2>
+        </div>
+    </div>
+</body>
+
+</html>
