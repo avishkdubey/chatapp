@@ -15,13 +15,12 @@
     <header class="bg-blue-600 text-white p-4 flex justify-between items-center shadow-lg">
         <h1 class="text-xl font-semibold">Chat Dashboard</h1>
         <div class="flex items-center space-x-4">
-            <span id="userInfo" class="text-sm"></span> <!-- Placeholder for user info -->
+            <span id="userInfo" class="text-sm"></span>
             <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded">Logout</button>
         </div>
     </header>
 
     <div class="h-full flex overflow-hidden">
-        <!-- Left Sidebar (User List) -->
         <div class="w-1/4 bg-gray-200 p-4 overflow-y-auto max-h-full">
             <h2 class="text-xl font-semibold mb-4">Users</h2>
             <ul id="userList">
@@ -34,7 +33,7 @@
             <!-- Active Chat User -->
             <div class="bg-blue-500 text-white p-4 font-bold text-center flex items-center justify-between">
                 <span id="activeUser">Chat with...</span>
-                <span class="w-3 h-3 bg-green-500 rounded-full"></span> <!-- Online Indicator for Active User -->
+                <span class="w-3 h-3 bg-green-500 rounded-full"></span>
             </div>
 
             <!-- Chat Messages -->
@@ -42,7 +41,6 @@
                 <!-- Chat messages will be displayed here -->
             </div>
 
-            <!-- Chat Input (Fixed at the bottom) -->
             <div class="p-4 bg-gray-200 flex items-center rounded-b-lg mt-auto">
                 <input id="messageInput" type="text" placeholder="Type a message..."
                     class="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -51,14 +49,12 @@
             </div>
         </div>
 
-        <!-- Welcome Message -->
         <div id="welcomeMessage" class="w-3/4 flex items-center justify-center bg-white shadow-lg rounded-lg p-4">
             <h2 class="text-xl font-semibold">Welcome to the Chat Dashboard!</h2>
         </div>
     </div>
 
     <script>
-        // Global Variables
         let payload, selectedUserId = null;
         const jwt = localStorage.getItem('jwt');
         const chatWindow = document.getElementById("chatWindow");
@@ -68,14 +64,12 @@
         const sendButton = document.getElementById("sendButton");
 
         if (!jwt) {
-            window.location.href = "login.html"; // Redirect to login if not authenticated
+            window.location.href = "login.html";
         } else {
-            // Decode JWT
             payload = JSON.parse(atob(jwt.split('.')[1]));
             document.getElementById('userInfo').textContent = `Logged in as: ${payload.username}`;
         }
 
-        // WebSocket connection
         const socket = io('http://localhost:5000', {
             auth: { token: jwt }
         });
@@ -89,7 +83,7 @@
                 if (response.ok) {
                     const users = await response.json();
                     const userListContainer = document.getElementById("userList");
-                    userListContainer.innerHTML = ""; // Clear old list
+                    userListContainer.innerHTML = "";
                     users.forEach(user => {
                         userListContainer.innerHTML += `
                             <li class="p-3 bg-white rounded-lg shadow mb-2 flex items-center cursor-pointer hover:bg-blue-100"
@@ -106,21 +100,19 @@
             }
         };
 
-        // Update user list on page load
         fetchUserList();
 
         // Handle user selection and fetch chat history
         const selectUser = (userId, username) => {
             selectedUserId = userId;
             document.getElementById("activeUser").textContent = `Chat with ${username}`;
-            welcomeMessage.classList.add("hidden"); // Hide welcome message
-            chatWindow.classList.remove("hidden"); // Show chat window
-            messageBox.innerHTML = ""; // Clear previous chat messages
+            welcomeMessage.classList.add("hidden");
+            chatWindow.classList.remove("hidden");
+            messageBox.innerHTML = "";
 
-            // Fetch chat history
             socket.emit("getChatHistory", { userId });
             socket.off("chatHistory").on("chatHistory", (messages) => {
-                messageBox.innerHTML = ""; // Avoid duplicates
+                messageBox.innerHTML = "";
                 messages.forEach((msg) => {
                     const isSender = msg.senderId === payload.id;
                     displayMessage(msg.message, isSender);
@@ -138,16 +130,16 @@
             messageDiv.classList.add("p-2", "rounded-lg", "mb-2", "max-w-xs", "break-words");
 
             if (isSender) {
-                messageContainer.classList.add("justify-end"); // Align right
-                messageDiv.classList.add("bg-blue-500", "text-white", "ml-auto"); // Right side
+                messageContainer.classList.add("justify-end");
+                messageDiv.classList.add("bg-blue-500", "text-white", "ml-auto");
             } else {
-                messageContainer.classList.add("justify-start"); // Align left
-                messageDiv.classList.add("bg-gray-300", "text-black", "mr-auto"); // Left side
+                messageContainer.classList.add("justify-start");
+                messageDiv.classList.add("bg-gray-300", "text-black", "mr-auto");
             }
 
             messageContainer.appendChild(messageDiv);
             messageBox.appendChild(messageContainer);
-            chatWindow.scrollTop = chatWindow.scrollHeight; // Auto-scroll
+            chatWindow.scrollTop = chatWindow.scrollHeight;
         }
         messageInput.addEventListener("keydown", (event) => {
             if (event.key === "Enter") {
@@ -164,11 +156,11 @@
                 return;
             }
             socket.emit("sendMessage", { receiverId: selectedUserId, message: messageContent });
-            messageInput.value = ""; // Clear input
+            messageInput.value = "";
         });
 
         socket.on("receiveMessage", (message) => {
-            const isSender = message.senderId === payload.id; // Check if the sender is the current user
+            const isSender = message.senderId === payload.id;
             displayMessage(message.message, isSender);
         });
 
@@ -176,13 +168,13 @@
         socket.on("updateUserList", (activeUserIds) => {
             document.querySelectorAll("[id^='onlineStatus-']").forEach(dot => {
                 dot.classList.remove("bg-green-500", "bg-gray-400");
-                dot.classList.add("bg-gray-400"); // Default offline
+                dot.classList.add("bg-gray-400");
             });
             activeUserIds.forEach(userId => {
                 const onlineStatus = document.getElementById(`onlineStatus-${userId}`);
                 if (onlineStatus) {
                     onlineStatus.classList.remove("bg-gray-400");
-                    onlineStatus.classList.add("bg-green-500"); // Online
+                    onlineStatus.classList.add("bg-green-500");
                 }
             });
         });

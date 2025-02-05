@@ -1,6 +1,6 @@
 const socket = io({
     auth: {
-        token: localStorage.getItem('jwt') // Include JWT in the WebSocket connection
+        token: localStorage.getItem('jwt')
     }
 });
 
