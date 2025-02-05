@@ -56,6 +56,144 @@
             <h2 class="text-xl font-semibold">Welcome to the Chat Dashboard!</h2>
         </div>
     </div>
+
+    <script>
+        // Global Variables
+        let payload, selectedUserId = null;
+        const jwt = localStorage.getItem('jwt');
+        const chatWindow = document.getElementById("chatWindow");
+        const welcomeMessage = document.getElementById("welcomeMessage");
+        const messageBox = document.getElementById("messageBox");
+        const messageInput = document.getElementById("messageInput");
+        const sendButton = document.getElementById("sendButton");
+
+        if (!jwt) {
+            window.location.href = "login.html"; // Redirect to login if not authenticated
+        } else {
+            // Decode JWT
+            payload = JSON.parse(atob(jwt.split('.')[1]));
+            document.getElementById('userInfo').textContent = `Logged in as: ${payload.username}`;
+        }
+
+        // WebSocket connection
+        const socket = io('http://localhost:5000', {
+            auth: { token: jwt }
+        });
+
+        // Fetch and display the user list
+        const fetchUserList = async () => {
+            try {
+                const response = await fetch('http://localhost:5000/api/users/users', {
+                    headers: { Authorization: `Bearer ${jwt}` },
+                });
+                if (response.ok) {
+                    const users = await response.json();
+                    const userListContainer = document.getElementById("userList");
+                    userListContainer.innerHTML = ""; // Clear old list
+                    users.forEach(user => {
+                        userListContainer.innerHTML += `
+                            <li class="p-3 bg-white rounded-lg shadow mb-2 flex items-center cursor-pointer hover:bg-blue-100"
+                                onclick="selectUser('${user.id}', '${user.username}')">
+                                ${user.username}
+                                <span id="onlineStatus-${user.id}" class="ml-auto w-3 h-3 bg-gray-400 rounded-full"></span>
+                            </li>`;
+                    });
+                } else {
+                    console.error("Failed to fetch users");
+                }
+            } catch (error) {
+                console.error("Error fetching users:", error);
+            }
+        };
+
+        // Update user list on page load
+        fetchUserList();
+
+        // Handle user selection and fetch chat history
+        const selectUser = (userId, username) => {
+            selectedUserId = userId;
+            document.getElementById("activeUser").textContent = `Chat with ${username}`;
+            welcomeMessage.classList.add("hidden"); // Hide welcome message
+            chatWindow.classList.remove("hidden"); // Show chat window
+            messageBox.innerHTML = ""; // Clear previous chat messages
+
+            // Fetch chat history
+            socket.emit("getChatHistory", { userId });
+            socket.off("chatHistory").on("chatHistory", (messages) => {
+                messageBox.innerHTML = ""; // Avoid duplicates
+                messages.forEach((msg) => {
+                    const isSender = msg.senderId === payload.id;
+                    displayMessage(msg.message, isSender);
+                });
+            });
+        };
+
+        // Display messages in the chat window
+        function displayMessage(message, isSender) {
+            const messageContainer = document.createElement("div");
+            messageContainer.classList.add("flex", "w-full");
+
+            const messageDiv = document.createElement("div");
+            messageDiv.textContent = message;
+            messageDiv.classList.add("p-2", "rounded-lg", "mb-2", "max-w-xs", "break-words");
+
+            if (isSender) {
+                messageContainer.classList.add("justify-end"); // Align right
+                messageDiv.classList.add("bg-blue-500", "text-white", "ml-auto"); // Right side
+            } else {
+                messageContainer.classList.add("justify-start"); // Align left
+                messageDiv.classList.add("bg-gray-300", "text-black", "mr-auto"); // Left side
+            }
+
+            messageContainer.appendChild(messageDiv);
+            messageBox.appendChild(messageContainer);
+            chatWindow.scrollTop = chatWindow.scrollHeight; // Auto-scroll
+        }
+        messageInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                sendButton.click();
+            }
+        });
+
+        // Handle sending messages
+        sendButton.addEventListener("click", () => {
+            const messageContent = messageInput.value.trim();
+            if (!messageContent || !selectedUserId) {
+                alert("Please enter a message and select a user!");
+                return;
+            }
+            socket.emit("sendMessage", { receiverId: selectedUserId, message: messageContent });
+            messageInput.value = ""; // Clear input
+        });
+
+        socket.on("receiveMessage", (message) => {
+            const isSender = message.senderId === payload.id; // Check if the sender is the current user
+            displayMessage(message.message, isSender);
+        });
+
+        // Update online status dynamically
+        socket.on("updateUserList", (activeUserIds) => {
+            document.querySelectorAll("[id^='onlineStatus-']").forEach(dot => {
+                dot.classList.remove("bg-green-500", "bg-gray-400");
+                dot.classList.add("bg-gray-400"); // Default offline
+            });
+            activeUserIds.forEach(userId => {
+                const onlineStatus = document.getElementById(`onlineStatus-${userId}`);
+                if (onlineStatus) {
+                    onlineStatus.classList.remove("bg-gray-400");
+                    onlineStatus.classList.add("bg-green-500"); // Online
+                }
+            });
+        });
+
+        // Logout functionality
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+            localStorage.removeItem("jwt");
+            window.location.href = "login.html";
+        });
+    </script>
+
 </body>
 
 </html>
