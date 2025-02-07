@@ -13,11 +13,7 @@ const User = require("./models/User");
 const { Op } = require("sequelize");
 
 const app = express();
-
-// Step 1: Create the HTTP server
 const server = http.createServer(app);
-
-// Step 2: Initialize socket.io with the server
 const io = socketIo(server, {
     cors: {
         origin: "*",
@@ -31,50 +27,46 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
-app.use("/api/users", userRoutes(io)); // Pass io object to userRoutes
+app.use("/api/users", userRoutes(io));
 
 // Redirect based on authentication
 app.get('/', (req, res) => {
-    const token = req.headers['authorization']?.split(' ')[1]; // Get token from headers
+    const token = req.headers['authorization']?.split(' ')[1];
     if (token) {
         jwt.verify(token, process.env.JWT_SECRET, (err) => {
             if (err) {
-                return res.redirect('/public/login.html'); // Redirect to login if token is invalid
+                return res.redirect('/public/login.html');
             }
-            return res.redirect('/public/index.html'); // Redirect to chat if token is valid
+            return res.redirect('/public/index.html');
         });
     } else {
-        return res.redirect('/public/login.html'); // Redirect to login if no token
+        return res.redirect('/public/login.html');
     }
 });
 
 let connectedUsers = {};
 
 io.use((socket, next) => {
-    const token = socket.handshake.auth.token; // Get token from the handshake
+    const token = socket.handshake.auth.token;
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) return next(new Error("Authentication error")); // Handle authentication error
-        socket.userId = user.id; // Save user ID to socket
+        if (err) return next(new Error("Authentication error"));
+        socket.userId = user.id;
         next();
     });
 });
 
 io.on("connection", (socket) => {
-    const userId = socket.userId; // Get user ID from socket
-
-    // Add user to activeUsers
+    const userId = socket.userId;
     connectedUsers[userId] = socket.id;
     io.emit("updateUserList", Object.keys(connectedUsers));
 
-    // Handle sending messages
     socket.on("sendMessage", async ({ receiverId, message }) => {
-        const senderId = userId; // Fetch the sender ID from the authenticated socket
+        const senderId = userId;
         if (!senderId || !receiverId || !message) {
             console.error("Invalid message payload:", { senderId, receiverId, message });
             return;
         }
 
-        // Save message to database
         try {
             const newMessage = await Message.create({
                 senderId,
@@ -82,7 +74,6 @@ io.on("connection", (socket) => {
                 message,
             });
 
-            // Emit the message to the sender and receiver
             io.to(connectedUsers[senderId]).emit("receiveMessage", newMessage);
             io.to(connectedUsers[receiverId]).emit("receiveMessage", newMessage);
         } catch (error) {
@@ -90,7 +81,6 @@ io.on("connection", (socket) => {
         }
     });
 
-    // Handle fetching chat history
     socket.on("getChatHistory", async ({ userId }) => {
         try {
             const chatHistory = await Message.findAll({
@@ -109,17 +99,16 @@ io.on("connection", (socket) => {
         }
     });
 
-    // Handle user disconnection
     socket.on("disconnect", () => {
         delete connectedUsers[userId];
         io.emit("updateUserList", Object.keys(connectedUsers));
     });
 });
 
-// Start Server & Connect to Database
 server.listen(PORT, async () => {
     try {
         await sequelize.authenticate();
+        await sequelize.sync();
         console.log(`Server is running on port ${PORT}`);
     } catch (error) {
         console.error("Error connecting to the database:", error.message);
